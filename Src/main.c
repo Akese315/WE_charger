@@ -32,6 +32,11 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM2_Init(void);
+
+
+uint8_t buffer[10];
+extern UART_HandleTypeDef huart2;
+
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
@@ -74,11 +79,12 @@ int main(void)
   
 
   /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-  /* USER CODE END 3 */
+  while(1)
+  {
+    char msg[] = "Hello World\r\n";
+    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+    HAL_Delay(100);
+  }
 }
 
 /**
@@ -199,7 +205,7 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 1 */
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 2000;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -208,11 +214,21 @@ static void MX_USART2_UART_Init(void)
   huart2.Init.OverSampling = UART_OVERSAMPLING_16;
   huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+
+  
   if (HAL_UART_Init(&huart2) != HAL_OK)
   {
     Error_Handler();
   }
   /* USER CODE BEGIN USART2_Init 2 */
+
+  HAL_NVIC_SetPriority(USART2_IRQn, 0, 0);    // Priorité de l'interruption
+  HAL_NVIC_EnableIRQ(USART2_IRQn); 
+
+  HAL_UART_Receive_IT(&huart2, buffer, sizeof(buffer));
+
+
+
   /* USER CODE END USART2_Init 2 */
 
 }
@@ -236,11 +252,13 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : PB1 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  /*Configure GPIO pin : PA_9 et et PA_10  */
+  GPIO_InitStruct.Pin = GPIO_PIN_10 | GPIO_PIN_9;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF4_USART2;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LD3_Pin */
   GPIO_InitStruct.Pin = LD3_Pin;
@@ -249,10 +267,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD3_GPIO_Port, &GPIO_InitStruct);
 
+  //PB_0
+
   GPIO_InitStruct.Pin = PWM_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  
   GPIO_InitStruct.Alternate = GPIO_AF5_TIM2;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(PWM_GPIO_Port, &GPIO_InitStruct);
@@ -263,6 +282,20 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART2) {
+        // traitement des données reçues dans 'buffer'
+        // relancer la réception
+        HAL_UART_Receive_IT(&huart2, buffer, sizeof(buffer));
+    }
+}
+
+void USART2_IRQHandler(void) {
+    HAL_UART_IRQHandler(&huart2);
+}
+
+
 /* USER CODE END 4 */
 
 /**
