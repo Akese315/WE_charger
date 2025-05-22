@@ -1,0 +1,24 @@
+build/
+.vscode/
+
+# Ignore IDE specific files
+EWARM/
+*.ewp
+*.eww
+
+# Ignore build directories
+build/
+Debug/
+Release/
+# Ignore binary files
+*.o
+*.elf
+*.hex
+*.bin
+
+# Ignore user-specific files
+*.user
+
+# Ignore temporary files
+*.tmp
+*.swp
